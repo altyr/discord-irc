@@ -2,12 +2,12 @@
 
 > Connects [Discord](https://discordapp.com/) and IRC channels by sending messages back and forth.
 
-A mostly feature complete port of [slack-irc](https://github.com/ekmartin/slack-irc).
-
 ## Example
 ![discord-irc](http://i.imgur.com/oI6iCrf.gif)
 
 ## Installation and usage
+**Note**: discord-irc requires Node.js version 6 or newer, as it depends on [discord.js](https://github.com/hydrabolt/discord.js).
+
 Either by installing through npm:
 ```bash
 $ npm install -g discord-irc
@@ -79,15 +79,12 @@ $ npm test
 ```
 
 ## Style Guide
-discord-irc uses a slightly modified version of the
-[Airbnb Style Guide](https://github.com/airbnb/javascript/tree/master/es5).
+discord-irc follows the [Airbnb Style Guide](https://github.com/airbnb/javascript).
 [ESLint](http://eslint.org/) is used to make sure this is followed correctly, which can be run with:
 
 ```bash
 $ npm run lint
 ```
-
-The deviations from the Airbnb Style Guide can be seen in  the [.eslintrc](.eslintrc) file.
 
 ## License
 
