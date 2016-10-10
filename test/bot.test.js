@@ -38,6 +38,14 @@ describe('Bot', function () {
     sandbox.restore();
   });
 
+  const createGuildStub = (nickname = null) => ({
+    members: {
+      find() {
+        return { nickname };
+      }
+    }
+  });
+
   it('should invert the channel mapping', function () {
     this.bot.invertedMapping['#irc'].should.equal('#discord');
   });
@@ -68,6 +76,7 @@ describe('Bot', function () {
     const text = 'testmessage';
     const newConfig = { ...config, ircNickColor: false };
     const bot = new Bot(newConfig);
+    const guild = createGuildStub();
     bot.connect();
     const message = {
       content: text,
@@ -78,7 +87,8 @@ describe('Bot', function () {
       author: {
         username: 'otherauthor',
         id: 'not bot id'
-      }
+      },
+      guild
     };
 
     bot.sendToIRC(message);
@@ -88,6 +98,7 @@ describe('Bot', function () {
 
   it('should send correct messages to irc', function () {
     const text = 'testmessage';
+    const guild = createGuildStub();
     const message = {
       content: text,
       mentions: { users: [] },
@@ -97,7 +108,8 @@ describe('Bot', function () {
       author: {
         username: 'otherauthor',
         id: 'not bot id'
-      }
+      },
+      guild
     };
 
     this.bot.sendToIRC(message);
@@ -108,6 +120,7 @@ describe('Bot', function () {
 
   it('should send attachment URL to IRC', function () {
     const attachmentUrl = 'https://image/url.jpg';
+    const guild = createGuildStub();
     const message = {
       content: '',
       mentions: { users: [] },
@@ -120,7 +133,8 @@ describe('Bot', function () {
       author: {
         username: 'otherauthor',
         id: 'not bot id'
-      }
+      },
+      guild
     };
 
     this.bot.sendToIRC(message);
@@ -131,6 +145,7 @@ describe('Bot', function () {
   it('should send text message and attachment URL to IRC if both exist', function () {
     const text = 'Look at this cute cat picture!';
     const attachmentUrl = 'https://image/url.jpg';
+    const guild = createGuildStub();
     const message = {
       content: text,
       attachments: [{
@@ -143,7 +158,8 @@ describe('Bot', function () {
       author: {
         username: 'otherauthor',
         id: 'not bot id'
-      }
+      },
+      guild
     };
 
     this.bot.sendToIRC(message);
@@ -156,6 +172,7 @@ describe('Bot', function () {
   });
 
   it('should not send an empty text message with an attachment to IRC', function () {
+    const guild = createGuildStub();
     const message = {
       content: '',
       attachments: [{
@@ -168,7 +185,8 @@ describe('Bot', function () {
       author: {
         username: 'otherauthor',
         id: 'not bot id'
-      }
+      },
+      guild
     };
 
     this.bot.sendToIRC(message);
@@ -177,11 +195,13 @@ describe('Bot', function () {
   });
 
   it('should not send its own messages to irc', function () {
+    const guild = createGuildStub();
     const message = {
       author: {
         username: 'bot',
         id: this.bot.discord.user.id
-      }
+      },
+      guild
     };
 
     this.bot.sendToIRC(message);
@@ -190,6 +210,7 @@ describe('Bot', function () {
 
   it('should not send messages to irc if the channel isn\'t in the channel mapping',
   function () {
+    const guild = createGuildStub();
     const message = {
       channel: {
         name: 'wrongdiscord'
@@ -197,7 +218,8 @@ describe('Bot', function () {
       author: {
         username: 'otherauthor',
         id: 'not bot id'
-      }
+      },
+      guild
     };
 
     this.bot.sendToIRC(message);
@@ -206,6 +228,7 @@ describe('Bot', function () {
 
   it('should parse text from discord when sending messages', function () {
     const text = '<#1234>';
+    const guild = createGuildStub();
     const message = {
       content: text,
       mentions: { users: [] },
@@ -215,7 +238,8 @@ describe('Bot', function () {
       author: {
         username: 'test',
         id: 'not bot id'
-      }
+      },
+      guild
     };
 
     // Wrap it in colors:
@@ -251,6 +275,15 @@ describe('Bot', function () {
     };
 
     this.bot.parseText(message).should.equal('@testuser hi');
+  });
+
+  it('should convert twitch emotes from discord', function () {
+    const message = {
+      mentions: { users: [] },
+      content: '<:SCGWat:230473833046343680>'
+    };
+
+    this.bot.parseText(message).should.equal(':SCGWat:');
   });
 
   it('should convert user mentions from IRC', function () {
@@ -300,6 +333,7 @@ describe('Bot', function () {
 
   it('should hide usernames for commands', function () {
     const text = '!test command';
+    const guild = createGuildStub();
     const message = {
       content: text,
       mentions: { users: [] },
@@ -309,7 +343,8 @@ describe('Bot', function () {
       author: {
         username: 'test',
         id: 'not bot id'
-      }
+      },
+      guild
     };
 
     this.bot.sendToIRC(message);
@@ -317,5 +352,30 @@ describe('Bot', function () {
       '#irc', 'Command sent from Discord by test:'
     ]);
     ClientStub.prototype.say.getCall(1).args.should.deep.equal(['#irc', text]);
+  });
+
+  it('should use nickname instead of username when available', function () {
+    const text = 'testmessage';
+    const newConfig = { ...config, ircNickColor: false };
+    const bot = new Bot(newConfig);
+    const nickname = 'discord-nickname';
+    const guild = createGuildStub(nickname);
+    bot.connect();
+    const message = {
+      content: text,
+      mentions: { users: [] },
+      channel: {
+        name: 'discord'
+      },
+      author: {
+        username: 'otherauthor',
+        id: 'not bot id'
+      },
+      guild
+    };
+
+    bot.sendToIRC(message);
+    const expected = `<${nickname}> ${text}`;
+    ClientStub.prototype.say.should.have.been.calledWith('#irc', expected);
   });
 });
